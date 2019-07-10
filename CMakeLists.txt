@@ -28,6 +28,7 @@ endif()
 
 # Setup core library
 add_library(blobify INTERFACE)
+target_link_libraries(blobify INTERFACE pfr::pfr)
 target_include_directories(blobify INTERFACE
     $<INSTALL_INTERFACE:include>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)

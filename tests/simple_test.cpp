@@ -1,4 +1,4 @@
-#include <blobify.hpp>
+#include <blobify/blobify.hpp>
 
 int main() {
 
