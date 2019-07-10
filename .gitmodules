@@ -1,0 +1,3 @@
+[submodule "magic_get"]
+	path = magic_get
+	url = https://github.com/apolukhin/magic_get
