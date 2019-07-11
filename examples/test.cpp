@@ -2,6 +2,9 @@
 #include <blobify/properties.hpp>
 #include <utility>
 
+#include <cstring>
+#include <iostream>
+
 namespace Example {
 
 struct ExampleStruct {
@@ -9,29 +12,35 @@ struct ExampleStruct {
     char member2;
 };
 
-static constexpr auto properties(blobify::tag<ExampleStruct>) {
+inline constexpr auto properties(blobify::tag<ExampleStruct>) {
     auto props = blobify::properties_t<ExampleStruct> { };
 
     props.member<&ExampleStruct::member1>().expected_value = 10;
-    props.member<&ExampleStruct::member2>().expected_value = '5';
+    props.member<&ExampleStruct::member2>().expected_value = 'c';
 
     return props;
 }
 
 } // namespace Example
 
+struct MemoryBackend {
+    char* current;
+    char* buffer_end;
+
+    template<size_t N>
+    static constexpr MemoryBackend OnArray(char (&array)[N]) {
+        return MemoryBackend { array, std::end(array) };
+    }
+
+    void load(char* buffer, size_t size) {
+        std::memcpy(buffer, current, size);
+        current += size;
+    }
+};
+
 int main() {
-    {
-        constexpr auto props = properties(blobify::make_tag<Example::ExampleStruct>);
-
-        static_assert(std::get<0>(props.members).expected_value == 10, "Failed to static_assert properties");
-        static_assert(std::get<1>(props.members).expected_value == '5', "Failed to static_assert properties");
-    }
-
-    {
-        using namespace blobify;
-        struct Test { int member; };
-        constexpr auto props = properties(blobify::make_tag<Test>);
-        static_assert(std::get<0>(props.members).expected_value == std::nullopt, "Failed to static_assert properties");
-    }
+    char data[] = { 10, 0, 0, 0, 'c' };
+    auto example_value = blobify::load<Example::ExampleStruct>(MemoryBackend::OnArray(data));
+    std::cout << "Member 1 is 0x" << std::hex << example_value.member1 << std::endl;
+    std::cout << "Member 2 is '" << example_value.member2 << "'" << std::endl;
 }
