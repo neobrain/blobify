@@ -1,9 +1,8 @@
-#ifndef BLOBIFY_HPP
-#define BLOBIFY_HPP
-
-#include "properties.hpp"
+#ifndef BLOBIFY_LOAD_HPP
+#define BLOBIFY_LOAD_HPP
 
 #include "construction_policy.hpp"
+#include "properties.hpp"
 #include "storage_backend.hpp"
 
 #include <boost/pfr/precise/core.hpp>
@@ -65,4 +64,4 @@ inline constexpr Data load(Storage&& storage) {
 
 } // namespace blobify
 
-#endif // BLOBIFY_HPP
+#endif // BLOBIFY_LOAD_HPP

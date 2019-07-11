@@ -1,5 +1,4 @@
-#include <blobify/blobify.hpp>
-#include <blobify/properties.hpp>
+#include <blobify/load.hpp>
 #include <utility>
 
 #include <cstring>
