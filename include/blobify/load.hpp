@@ -12,6 +12,11 @@
 
 namespace blobify {
 
+template<typename Data,
+         typename Storage = detail::default_storage_backend,
+         typename ConstructionPolicy = detail::default_construction_policy>
+inline constexpr Data load(Storage&& storage);
+
 namespace detail {
 
 // Load a single, plain data type element
@@ -38,9 +43,13 @@ inline constexpr decltype(auto) validate_element(Member&& member) {
 // Load a single, plain data type element
 template<typename Member, auto member_props, typename Storage, typename ConstructionPolicy>
 inline constexpr Member load_element(Storage& storage) {
-    using representative_type = typename std::remove_reference_t<decltype(*member_props)>::representative_type;
-    auto representative = load_element_representative<representative_type>(storage);
-    return validate_element<member_props>(ConstructionPolicy::template decode<Member, representative_type, member_props->endianness>(representative));
+    if constexpr (std::is_class_v<Member>) {
+        return load<Member, Storage&, ConstructionPolicy>(storage);
+    } else {
+        using representative_type = typename std::remove_reference_t<decltype(*member_props)>::representative_type;
+        auto representative = load_element_representative<representative_type>(storage);
+        return validate_element<member_props>(ConstructionPolicy::template decode<Member, representative_type, member_props->endianness>(representative));
+    }
 }
 
 template<typename Storage, typename ConstructionPolicy, typename Data, typename Members>
@@ -57,8 +66,8 @@ struct load_helper_t<Storage, ConstructionPolicy, Data, std::tuple<Members...>> 
 } // namespace detail
 
 template<typename Data,
-         typename Storage = detail::default_storage_backend,
-         typename ConstructionPolicy = detail::default_construction_policy>
+         typename Storage,
+         typename ConstructionPolicy>
 inline constexpr Data load(Storage&& storage) {
     // NOTE: rvalue reference inputs are forwarded as lvalue references here,
     //       since the Storage will usually carry state that we want to keep

@@ -6,16 +6,21 @@
 
 namespace Example {
 
+struct InnerStruct {
+    std::uint32_t inner_member;
+};
+
 struct ExampleStruct {
     int member1;
-    char member2;
+    InnerStruct member2;
+    char member3;
 };
 
 inline constexpr auto properties(blobify::tag<ExampleStruct>) {
     auto props = blobify::properties_t<ExampleStruct> { };
 
     props.member<&ExampleStruct::member1>().expected_value = 10;
-    props.member<&ExampleStruct::member2>().expected_value = 'c';
+    props.member<&ExampleStruct::member3>().expected_value = 'c';
 
     return props;
 }
@@ -38,12 +43,13 @@ struct MemoryBackend {
 };
 
 int main() {
-    char data[] = { 10, 0, 0, 0, 'c' };
+    char data[256] = { 10, 0, 0, 0, 20, 0, 0, 0, 'c' };
 
     {
         auto example_value = blobify::load<Example::ExampleStruct>(MemoryBackend::OnArray(data));
         std::cout << "Member 1 is 0x" << std::hex << example_value.member1 << std::endl;
-        std::cout << "Member 2 is '" << example_value.member2 << "'" << std::endl;
+        std::cout << "Member 2 is 0x" << std::hex << example_value.member2.inner_member << std::endl;
+        std::cout << "Member 3 is '" << example_value.member3 << "'" << std::endl;
     }
 
     data[0] = 11;

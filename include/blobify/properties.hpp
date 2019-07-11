@@ -54,6 +54,8 @@ auto select_representative() {
     }
 }
 
+struct no_representative_type {};
+
 } // namespace detail
 
 template<typename T>
@@ -68,8 +70,12 @@ struct properties_t {
         /// Endianness in serialized state (endianness for loaded values is configured through @a construction_policy)
         endian endianness = endian::native;
 
+        static constexpr bool has_representative_type = !std::is_class_v<MemberType> && !std::is_union_v<MemberType>;
         /// Type of @a representative passed to construction_policy for decoding/encoding the actual value
-        using representative_type = decltype(detail::select_representative<MemberType>());
+        using representative_type = std::conditional_t<has_representative_type,
+                                                       // Wrapping MemberType in a conditional_t to prevent select_representative from failing its static_asserts if !has_representative_type
+                                                       decltype(detail::select_representative<std::conditional_t<has_representative_type, MemberType, int>>()),
+                                                       detail::no_representative_type>;
     };
 
     template<std::size_t... Idxs>
