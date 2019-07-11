@@ -39,7 +39,20 @@ struct MemoryBackend {
 
 int main() {
     char data[] = { 10, 0, 0, 0, 'c' };
-    auto example_value = blobify::load<Example::ExampleStruct>(MemoryBackend::OnArray(data));
-    std::cout << "Member 1 is 0x" << std::hex << example_value.member1 << std::endl;
-    std::cout << "Member 2 is '" << example_value.member2 << "'" << std::endl;
+
+    {
+        auto example_value = blobify::load<Example::ExampleStruct>(MemoryBackend::OnArray(data));
+        std::cout << "Member 1 is 0x" << std::hex << example_value.member1 << std::endl;
+        std::cout << "Member 2 is '" << example_value.member2 << "'" << std::endl;
+    }
+
+    data[0] = 11;
+    try {
+        (void)blobify::load<Example::ExampleStruct>(MemoryBackend::OnArray(data));
+
+        std::cout << "This should not be printed: member1 was not 10 and hence load() should throw an exception!" << std::endl;
+
+    } catch (blobify::unexpected_value_exception<&Example::ExampleStruct::member1>& err) {
+        std::cout << "Rightfully caught exception: member 1 was not 10!" << std::endl;
+    }
 }

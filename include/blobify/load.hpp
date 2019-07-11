@@ -2,6 +2,7 @@
 #define BLOBIFY_LOAD_HPP
 
 #include "construction_policy.hpp"
+#include "exceptions.hpp"
 #include "properties.hpp"
 #include "storage_backend.hpp"
 
@@ -22,12 +23,16 @@ inline constexpr Representative load_element_representative(Storage& storage) {
 }
 
 template<auto member_props, typename Member>
-inline constexpr Member&& validate_element(Member&& member) {
-    if (member_props->expected_value && member != member_props->expected_value) {
-        throw std::runtime_error("Input didn't match expected value");
+inline constexpr decltype(auto) validate_element(Member&& member) {
+    if constexpr (member_props->expected_value) {
+        static_assert(member_props->ptr, "expected_value property is set but the pointer-to-member-data could not be inferred. The pointer must be provided manually in this case.");
+
+        if (member != member_props->expected_value) {
+            throw unexpected_value_exception<member_props->ptr>(*member_props->expected_value, member);
+        }
     }
 
-    return std::move(member);
+    return std::forward<Member>(member);
 }
 
 // Load a single, plain data type element
