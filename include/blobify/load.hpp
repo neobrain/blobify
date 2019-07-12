@@ -42,16 +42,16 @@ inline constexpr decltype(auto) validate_element(Member&& member) {
     return std::forward<Member>(member);
 }
 
-template<typename ElementType, auto member_props, typename Storage, typename ConstructionPolicy, std::size_t... Idxs>
-inline constexpr std::array<ElementType, sizeof...(Idxs)>
-load_array(Storage& storage, std::index_sequence<Idxs...>);
+template<typename ElementType, auto member_props, typename Storage, typename ConstructionPolicy, std::size_t NumElements>
+constexpr std::array<ElementType, NumElements>
+load_array(Storage& storage);
 
 // Load a single, plain data type element
 template<typename Member, auto member_props, typename Storage, typename ConstructionPolicy>
 inline constexpr Member load_element(Storage& storage) {
     if constexpr (detail::is_std_array_v<Member>) {
         // Optimized code path for collections of uniform type
-        return load_array<typename Member::value_type, member_props, Storage, ConstructionPolicy>(storage, std::make_index_sequence<std::tuple_size_v<Member>>{});
+        return load_array<typename Member::value_type, member_props, Storage, ConstructionPolicy, std::tuple_size_v<Member>>(storage);
     } else if constexpr (std::is_class_v<Member>) {
         return load<Member, Storage&, ConstructionPolicy>(storage);
     } else {
@@ -62,9 +62,28 @@ inline constexpr Member load_element(Storage& storage) {
 }
 
 template<typename ElementType, auto member_props, typename Storage, typename ConstructionPolicy, std::size_t... Idxs>
-inline constexpr std::array<ElementType, sizeof...(Idxs)>
-load_array(Storage& storage, std::index_sequence<Idxs...>) {
-    return std::array<ElementType, sizeof...(Idxs)> { { ((void)Idxs, load_element<ElementType, member_props, Storage, ConstructionPolicy>(storage))... } };
+constexpr auto load_array_elementwise(Storage& storage, std::index_sequence<Idxs...>) {
+    constexpr auto num_elements = sizeof...(Idxs);
+    using ArrayType = std::array<ElementType, num_elements>;
+    return ArrayType { { ((void)Idxs, load_element<ElementType, member_props, Storage, ConstructionPolicy>(storage))... } };
+}
+
+template<typename ElementType, auto member_props, typename Storage, typename ConstructionPolicy, std::size_t NumElements>
+constexpr std::array<ElementType, NumElements>
+load_array(Storage& storage) {
+    using ArrayType = std::array<ElementType, NumElements>;
+    if constexpr (NumElements > 8 && std::is_default_constructible_v<ElementType>) {
+        // For a large-ish array, prefer allocating it on stack and
+        // initializing it using a loop, since doing so is much easier
+        // on the compiler
+        ArrayType array;
+        for (auto& element : array) {
+            element = load_element<ElementType, member_props, Storage, ConstructionPolicy>(storage);
+        }
+        return array;
+    } else {
+        return load_array_elementwise<ElementType, member_props, Storage, ConstructionPolicy>(storage, std::make_index_sequence<NumElements>{});
+    }
 }
 
 template<typename Storage, typename ConstructionPolicy, typename Data, typename Members>
