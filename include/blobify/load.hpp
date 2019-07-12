@@ -17,20 +17,20 @@ namespace blobify {
 template<typename Data,
          typename Storage = detail::default_storage_backend,
          typename ConstructionPolicy = detail::default_construction_policy>
-inline constexpr Data load(Storage&& storage);
+constexpr Data load(Storage&& storage);
 
 namespace detail {
 
 // Load a single, plain data type element
 template<typename Representative, typename Storage>
-inline constexpr Representative load_element_representative(Storage& storage) {
+constexpr Representative load_element_representative(Storage& storage) {
     Representative rep;
     storage.load(reinterpret_cast<char*>(&rep), sizeof(rep));
     return rep;
 }
 
 template<auto member_props, typename Member>
-inline constexpr decltype(auto) validate_element(Member&& member) {
+constexpr decltype(auto) validate_element(Member&& member) {
     if constexpr (member_props->expected_value) {
         static_assert(member_props->ptr, "expected_value property is set but the pointer-to-member-data could not be inferred. The pointer must be provided manually in this case.");
 
@@ -48,7 +48,7 @@ load_array(Storage& storage);
 
 // Load a single, plain data type element
 template<typename Member, auto member_props, typename Storage, typename ConstructionPolicy>
-inline constexpr Member load_element(Storage& storage) {
+constexpr Member load_element(Storage& storage) {
     if constexpr (detail::is_std_array_v<Member>) {
         // Optimized code path for collections of uniform type
         return load_array<typename Member::value_type, member_props, Storage, ConstructionPolicy, std::tuple_size_v<Member>>(storage);
@@ -102,7 +102,7 @@ struct load_helper_t<Storage, ConstructionPolicy, Data, std::tuple<Members...>> 
 template<typename Data,
          typename Storage,
          typename ConstructionPolicy>
-inline constexpr Data load(Storage&& storage) {
+constexpr Data load(Storage&& storage) {
     // NOTE: rvalue reference inputs are forwarded as lvalue references here,
     //       since the Storage will usually carry state that we want to keep
     using members_tuple_t = decltype(boost::pfr::structure_to_tuple(std::declval<Data>()));
