@@ -3,8 +3,9 @@
 
 #include "tag.hpp"
 #include "detail/is_array.hpp"
-#include "detail/pmd_traits.hpp"
 #include "endian.hpp"
+
+#include <boost/pfr/precise/core.hpp>
 
 #include <cstddef>
 #include <optional>
@@ -111,7 +112,7 @@ struct properties_t {
  * Customization point for specifying properties of user-defined data types
  */
 template<typename T>
-inline constexpr auto properties(tag<T>) {
+constexpr auto properties(tag<T>) {
     return properties_t<T> { };
 }
 
@@ -120,6 +121,36 @@ namespace detail {
 // Helper template to produce pointers that can be passed as template parameters pre-C++20
 template<typename Data, std::size_t Idx>
 inline constexpr auto member_properties_for = properties(make_tag<Data>).template member_at<Idx>();
+
+template<typename Data>
+constexpr std::size_t total_serialized_size();
+
+template<typename Data, std::size_t Idx>
+constexpr std::size_t member_size_for() {
+    constexpr auto props = member_properties_for<Data, Idx>;
+    if constexpr (props.has_representative_type) {
+        return sizeof(typename decltype(props)::representative_type);
+    } else {
+        return total_serialized_size<boost::pfr::tuple_element_t<Idx, Data>>();
+    }
+}
+
+template<typename Data, std::size_t Idx>
+constexpr std::size_t member_offset_for() {
+    if constexpr (Idx == 0) {
+        return 0;
+    } else {
+        // Build up offset via recursion
+        return member_size_for<Data, Idx - 1>() + member_offset_for<Data, Idx - 1>();
+    }
+}
+
+template<typename Data>
+constexpr std::size_t total_serialized_size() {
+    constexpr auto size = boost::pfr::tuple_size_v<Data>;
+    // Add the size of the last member to its offset
+    return member_offset_for<Data, size>();
+}
 
 }
 

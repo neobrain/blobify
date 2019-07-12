@@ -9,8 +9,10 @@ namespace blobify {
  * Defines read/write primitives for interacting with the underlying data source/target
  */
 struct storage_backend {
-    void load(std::byte* target, std::size_t size);
-    void store(std::byte* source, std::size_t size);
+    void skip(std::size_t num_bytes);
+
+    void load(std::byte* target, std::size_t num_bytes);
+    void store(std::byte* source, std::size_t num_bytes);
 
     // TODO: StorageRemaining() for efficient bounds checks?
 };

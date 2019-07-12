@@ -17,7 +17,7 @@ namespace blobify {
 template<typename Data,
          typename Storage = detail::default_storage_backend,
          typename ConstructionPolicy = detail::default_construction_policy>
-constexpr Data load(Storage&& storage);
+constexpr Data load(Storage&& storage, blobify::tag<ConstructionPolicy> = { });
 
 namespace detail {
 
@@ -46,7 +46,7 @@ template<typename ElementType, auto member_props, typename Storage, typename Con
 constexpr std::array<ElementType, NumElements>
 load_array(Storage& storage);
 
-// Load a single, plain data type element
+// Load a single element (possibly aggregate)
 template<typename Member, auto member_props, typename Storage, typename ConstructionPolicy>
 constexpr Member load_element(Storage& storage) {
     if constexpr (detail::is_std_array_v<Member>) {
@@ -102,12 +102,38 @@ struct load_helper_t<Storage, ConstructionPolicy, Data, std::tuple<Members...>> 
 template<typename Data,
          typename Storage,
          typename ConstructionPolicy>
-constexpr Data load(Storage&& storage) {
+constexpr Data load(Storage&& storage, blobify::tag<ConstructionPolicy>) {
     // NOTE: rvalue reference inputs are forwarded as lvalue references here,
     //       since the Storage will usually carry state that we want to keep
     using members_tuple_t = decltype(boost::pfr::structure_to_tuple(std::declval<Data>()));
     constexpr auto index_sequence = std::make_index_sequence<std::tuple_size_v<members_tuple_t>> { };
     return detail::load_helper_t<Storage, ConstructionPolicy, Data, members_tuple_t>{}(storage, index_sequence);
+}
+
+template<auto PointerToMember1,
+         auto... PointersToMember,
+         typename Storage,
+         typename ConstructionPolicy = detail::default_construction_policy
+         >
+constexpr auto lens_load(Storage&& storage,
+                         [[maybe_unused]] blobify::tag<ConstructionPolicy> construction_policy_tag = { }) {
+    using Data = typename detail::pmd_traits_t<PointerToMember1>::parent_type;
+    static_assert(detail::is_valid_pmd_chain_v<Data, decltype(PointerToMember1), decltype(PointersToMember)...>,
+                  "Given list of pointers-to-member does not form a valid member lookup chain");
+
+    // Skip the up to PointerToMember1, then recurse into the list of variadic parameters
+    constexpr auto index_sequence = std::make_index_sequence<boost::pfr::tuple_size_v<Data>>{};
+    constexpr auto member_index = detail::pmd_to_member_index<Data, PointerToMember1>(index_sequence);
+    storage.skip(detail::member_offset_for<Data, member_index>());
+
+    if constexpr (sizeof...(PointersToMember)) {
+        return lens_load<PointersToMember...>(std::forward<Storage>(storage), construction_policy_tag);
+    } else {
+        // This is the actual object requested by the user, so use the standard load_element code path to fetch it
+        using MemberType = std::remove_reference_t<decltype(std::declval<Data>().*PointerToMember1)>;
+        constexpr auto& member_properties = detail::member_properties_for<Data, member_index>;
+        return detail::load_element<MemberType, &member_properties, Storage, ConstructionPolicy>(storage);
+    }
 }
 
 } // namespace blobify
