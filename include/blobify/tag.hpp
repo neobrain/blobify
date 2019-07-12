@@ -5,9 +5,9 @@
 
 namespace blobify {
 
-// Tag used to find user-provided, namespaced functions via overload resolution
+// Tag used to aid overload-resolution
 template<typename T>
-using tag = T*;
+struct tag { };
 
 template<typename T>
 constexpr auto make_tag = tag<T> { };
