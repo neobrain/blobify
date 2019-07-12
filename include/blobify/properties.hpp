@@ -2,6 +2,7 @@
 #define BLOBIFY_PROPERTIES_HPP
 
 #include "tag.hpp"
+#include "detail/is_array.hpp"
 #include "detail/pmd_traits.hpp"
 #include "endian.hpp"
 
@@ -16,11 +17,15 @@ namespace detail {
 template<typename T>
 auto select_representative() {
     static_assert(!std::is_pointer_v<T>, "select_representative may not be called on pointers");
-    static_assert(!std::is_class_v<T> && !std::is_union_v<T>, "select_representative may not be called on class/union types");
+
+    // Class types and unoipns are not supported (unless it's an std::array)
+    static_assert((!std::is_class_v<T> && !std::is_union_v<T>) || detail::is_std_array_v<T>, "select_representative may not be called on class/union types");
 
     static_assert(!std::is_floating_point_v<T>, "select_representative is not implemented for floating point types, yet");
 
-    if constexpr (std::is_enum_v<T>) {
+    if constexpr (detail::is_std_array_v<T>) {
+        return select_representative<typename T::value_type>();
+    } else if constexpr (std::is_enum_v<T>) {
         return std::underlying_type_t<T> { };
     } else {
         static_assert(std::is_integral_v<T>, "Unexpected non-integral type. This is a bug.");
@@ -70,7 +75,7 @@ struct properties_t {
         /// Endianness in serialized state (endianness for loaded values is configured through @a construction_policy)
         endian endianness = endian::native;
 
-        static constexpr bool has_representative_type = !std::is_class_v<MemberType> && !std::is_union_v<MemberType>;
+        static constexpr bool has_representative_type = (!std::is_class_v<MemberType> && !std::is_union_v<MemberType>) || detail::is_std_array_v<MemberType>;
         /// Type of @a representative passed to construction_policy for decoding/encoding the actual value
         using representative_type = std::conditional_t<has_representative_type,
                                                        // Wrapping MemberType in a conditional_t to prevent select_representative from failing its static_asserts if !has_representative_type

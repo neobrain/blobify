@@ -6,6 +6,8 @@
 #include "properties.hpp"
 #include "storage_backend.hpp"
 
+#include "detail/is_array.hpp"
+
 #include <boost/pfr/precise/core.hpp>
 
 #include <cstddef>
@@ -40,16 +42,29 @@ inline constexpr decltype(auto) validate_element(Member&& member) {
     return std::forward<Member>(member);
 }
 
+template<typename ElementType, auto member_props, typename Storage, typename ConstructionPolicy, std::size_t... Idxs>
+inline constexpr std::array<ElementType, sizeof...(Idxs)>
+load_array(Storage& storage, std::index_sequence<Idxs...>);
+
 // Load a single, plain data type element
 template<typename Member, auto member_props, typename Storage, typename ConstructionPolicy>
 inline constexpr Member load_element(Storage& storage) {
-    if constexpr (std::is_class_v<Member>) {
+    if constexpr (detail::is_std_array_v<Member>) {
+        // Optimized code path for collections of uniform type
+        return load_array<typename Member::value_type, member_props, Storage, ConstructionPolicy>(storage, std::make_index_sequence<std::tuple_size_v<Member>>{});
+    } else if constexpr (std::is_class_v<Member>) {
         return load<Member, Storage&, ConstructionPolicy>(storage);
     } else {
         using representative_type = typename std::remove_reference_t<decltype(*member_props)>::representative_type;
         auto representative = load_element_representative<representative_type>(storage);
         return validate_element<member_props>(ConstructionPolicy::template decode<Member, representative_type, member_props->endianness>(representative));
     }
+}
+
+template<typename ElementType, auto member_props, typename Storage, typename ConstructionPolicy, std::size_t... Idxs>
+inline constexpr std::array<ElementType, sizeof...(Idxs)>
+load_array(Storage& storage, std::index_sequence<Idxs...>) {
+    return std::array<ElementType, sizeof...(Idxs)> { { ((void)Idxs, load_element<ElementType, member_props, Storage, ConstructionPolicy>(storage))... } };
 }
 
 template<typename Storage, typename ConstructionPolicy, typename Data, typename Members>
