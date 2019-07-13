@@ -2,6 +2,7 @@
 #define BLOBIFY_HPP
 
 #include <blobify/load.hpp>
+#include <blobify/modify.hpp>
 #include <blobify/store.hpp>
 
 #endif // BLOBIFY_HPP
