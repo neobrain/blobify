@@ -4,6 +4,7 @@
 #include <boost/pfr/precise.hpp>
 
 #include <cstddef>
+#include <type_traits>
 #include <utility>
 
 #include "../tag.hpp"
@@ -40,6 +41,9 @@ struct is_valid_pmd_chain_helper<std::void_t<decltype((std::declval<Data>().* ..
 /// Checks if the the given list of pointers-to-member-data yields a well-formed member lookup chain
 template<typename Data, typename... PointersToMember>
 constexpr bool is_valid_pmd_chain_v = is_valid_pmd_chain_helper<void, Data, PointersToMember...>::value;
+
+template<typename Data, auto... PointersToMember>
+using pointed_member_type = std::remove_reference_t<decltype((std::declval<Data>() .* ... .* PointersToMember))>;
 
 } // namespace blobify::detail
 
