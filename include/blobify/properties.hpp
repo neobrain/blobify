@@ -3,6 +3,7 @@
 
 #include "tag.hpp"
 #include "detail/is_array.hpp"
+#include "detail/pmd_traits.hpp"
 #include "endian.hpp"
 
 #include <boost/pfr/precise/core.hpp>
@@ -16,7 +17,7 @@ namespace detail {
 
 /// Helper to map elementary types to the representative type used
 template<typename T>
-auto select_representative() {
+constexpr auto select_representative() {
     static_assert(!std::is_pointer_v<T>, "select_representative may not be called on pointers");
 
     // Class types and unoipns are not supported (unless it's an std::array)
