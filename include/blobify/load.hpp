@@ -25,7 +25,7 @@ namespace detail {
 template<typename Representative, typename Storage>
 constexpr Representative load_element_representative(Storage& storage) {
     Representative rep;
-    storage.load(reinterpret_cast<char*>(&rep), sizeof(rep));
+    storage.load(reinterpret_cast<std::byte*>(&rep), sizeof(rep));
     return rep;
 }
 

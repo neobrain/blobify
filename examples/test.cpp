@@ -28,15 +28,15 @@ inline constexpr auto properties(blobify::tag<ExampleStruct>) {
 } // namespace Example
 
 struct MemoryBackend {
-    char* current;
-    char* buffer_end;
+    std::byte* current;
+    std::byte* buffer_end;
 
     template<size_t N>
     static constexpr MemoryBackend OnArray(char (&array)[N]) {
-        return MemoryBackend { array, std::end(array) };
+        return MemoryBackend { reinterpret_cast<std::byte*>(array), reinterpret_cast<std::byte*>(std::end(array)) };
     }
 
-    void load(char* buffer, size_t size) {
+    void load(std::byte* buffer, size_t size) {
         std::memcpy(buffer, current, size);
         current += size;
     }

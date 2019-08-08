@@ -21,16 +21,16 @@ constexpr void store(Storage&&, const Data& data, blobify::tag<ConstructionPolic
 
 namespace detail {
 
-// Load a single, plain data type element
+// Store a single, plain data type element
 template<typename Representative, typename Storage>
 constexpr void store_element_representative(Storage& storage, Representative rep) {
-    storage.store(reinterpret_cast<char*>(&rep), sizeof(rep));
+    storage.store(reinterpret_cast<std::byte*>(&rep), sizeof(rep));
 }
 
 template<auto member_props, typename Storage, typename ConstructionPolicy, typename ArrayType>
 constexpr void store_array(Storage&, const ArrayType&);
 
-// Load a single element (possibly aggregate)
+// Store a single element (possibly aggregate)
 template<auto member_props, typename Storage, typename ConstructionPolicy, typename Member>
 constexpr void store_element(Storage& storage, const Member& member) {
     if constexpr (detail::is_std_array_v<Member>) {
