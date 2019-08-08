@@ -10,6 +10,8 @@
 
 #include <boost/pfr/precise/core.hpp>
 
+#include <magic_enum.hpp>
+
 #include <cstddef>
 
 namespace blobify {
@@ -29,6 +31,10 @@ constexpr Representative load_element_representative(Storage& storage) {
     return rep;
 }
 
+// NOTE: Using <algorithm> on std::array in a constexpr context requires instantiation of the array as a global object
+template<typename Enum>
+inline constexpr auto magic_enum_values_v = magic_enum::enum_values<Enum>();
+
 template<auto member_props, typename Member>
 constexpr decltype(auto) validate_element(Member&& member) {
     if constexpr (member_props->expected_value) {
@@ -36,6 +42,33 @@ constexpr decltype(auto) validate_element(Member&& member) {
 
         if (member != member_props->expected_value) {
             throw unexpected_value_exception<member_props->ptr>(*member_props->expected_value, member);
+        }
+    }
+
+    if constexpr (member_props->validate_enum) {
+        static_assert (std::is_enum_v<Member>, "validate_enum property is set on a member that is not an enum");
+
+        constexpr auto values = magic_enum::enum_values<Member>();
+        if (std::none_of(values.begin(), values.end(), [=](auto val) { return val == member; })) {
+            throw invalid_enum_value_exception_for<member_props->ptr>(member);
+        }
+    }
+
+    if constexpr (member_props->validate_enum_bounds) {
+        static_assert (std::is_enum_v<Member>, "validate_enum_bounds property is set on a member that is not an enum");
+        static_assert (!member_props->validate_enum, "Setting validate_enum_bounds when validate_enum is already set is redundant");
+
+        auto enum_less = [](auto left, auto right) {
+            using type = magic_enum::underlying_type_t<Member>;
+            return (static_cast<type>(left) < static_cast<type>(right));
+        };
+        constexpr auto values_begin = magic_enum_values_v<Member>.begin();
+        constexpr auto values_end = magic_enum_values_v<Member>.end();
+        constexpr auto minmax_value = std::minmax_element(values_begin, values_end, enum_less);
+
+        // NOTE: The bounds are computed at compile-time
+        if (enum_less(member, *minmax_value.first) || enum_less(*minmax_value.second, member)) {
+            throw invalid_enum_value_exception_for<member_props->ptr>(member);
         }
     }
 

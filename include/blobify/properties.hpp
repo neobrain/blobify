@@ -71,6 +71,20 @@ struct properties_t {
     struct member_property_t {
         std::optional<MemberType> expected_value;
 
+        /**
+         * Validate enums using a quick check on the enum bounds defined by the smallest and the largest value
+         *
+         * On validation error, an invalid_enum_value_exception is thrown
+         */
+        bool validate_enum_bounds = false;
+
+        /**
+         * Validate enums by making sure the loaded value is an element of the enum
+         *
+         * On validation error, an invalid_enum_value_exception is thrown
+         */
+        bool validate_enum = false;
+
         // Pointer stored for later reference (e.g. for error reporting)
         MemberType T::*ptr = nullptr;
 
