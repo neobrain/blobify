@@ -17,6 +17,7 @@ option(BLOBIFY_TESTS "Build tests" OFF)
 
 # Find dependencies
 find_package(PFR REQUIRED)
+find_package(magic_enum REQUIRED)
 
 if(BLOBIFY_TESTS)
     find_package(Catch2)
@@ -28,7 +29,7 @@ endif()
 
 # Setup core library
 add_library(blobify INTERFACE)
-target_link_libraries(blobify INTERFACE pfr::pfr)
+target_link_libraries(blobify INTERFACE pfr::pfr magic_enum::magic_enum)
 target_include_directories(blobify INTERFACE
     $<INSTALL_INTERFACE:include>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
