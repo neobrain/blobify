@@ -83,6 +83,8 @@ template<typename Storage,
          typename ConstructionPolicy,
          typename Data>
 constexpr void store(Storage&& storage, const Data& data, blobify::tag<ConstructionPolicy>) {
+    detail::generic_validate<Data>();
+
     // NOTE: rvalue reference Storage inputs are forwarded as lvalue references here,
     //       since the Storage will usually carry state that we want to keep
     constexpr auto index_sequence = std::make_index_sequence<boost::pfr::tuple_size_v<Data>> { };
@@ -97,6 +99,7 @@ template<auto PointerToMember1,
 constexpr void lens_store(Storage&& storage, const Value& value,
                          [[maybe_unused]] blobify::tag<ConstructionPolicy> construction_policy_tag = { }) {
     using Data = typename detail::pmd_traits_t<PointerToMember1>::parent_type;
+    detail::generic_validate<Data>();
     static_assert(detail::is_valid_pmd_chain_v<Data, decltype(PointerToMember1), decltype(PointersToMember)...>,
                   "Given list of pointers-to-member does not form a valid member lookup chain");
 

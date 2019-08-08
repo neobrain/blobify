@@ -136,6 +136,8 @@ template<typename Data,
          typename Storage,
          typename ConstructionPolicy>
 constexpr Data load(Storage&& storage, blobify::tag<ConstructionPolicy>) {
+    detail::generic_validate<Data>();
+
     // NOTE: rvalue reference inputs are forwarded as lvalue references here,
     //       since the Storage will usually carry state that we want to keep
     using members_tuple_t = decltype(boost::pfr::structure_to_tuple(std::declval<Data>()));
@@ -151,6 +153,7 @@ template<auto PointerToMember1,
 constexpr auto lens_load(Storage&& storage,
                          [[maybe_unused]] blobify::tag<ConstructionPolicy> construction_policy_tag = { }) {
     using Data = typename detail::pmd_traits_t<PointerToMember1>::parent_type;
+    detail::generic_validate<Data>();
     static_assert(detail::is_valid_pmd_chain_v<Data, decltype(PointerToMember1), decltype(PointersToMember)...>,
                   "Given list of pointers-to-member does not form a valid member lookup chain");
 

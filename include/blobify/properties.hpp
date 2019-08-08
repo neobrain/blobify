@@ -67,6 +67,25 @@ struct no_representative_type {};
 
 template<typename T>
 struct properties_t {
+    /**
+     * Expected size of the tightly packed, serialized data. This can be useful
+     * to ensure the C++ structure definition is consistent with an external
+     * specification document.
+     *
+     * Note that the serialized data size explicitly does not consider
+     * padding bytes the compiler might add in the C++ structure. If you need
+     * to ensure those aren't added, use expect_tight_padding.
+     *
+     * The value 0 disables this check.
+     */
+    std::size_t expected_size = 0;
+
+    /**
+     * Expect that sizeof(T) equals the sum of its member sizes, i.e.
+     * the compiler inserted no padding bytes between the defined members.
+     */
+    bool expect_tight_packing = false;
+
     template<typename MemberType>
     struct member_property_t {
         std::optional<MemberType> expected_value;
@@ -180,7 +199,21 @@ constexpr std::size_t total_serialized_size() {
     }
 }
 
+template<typename Data>
+void generic_validate() {
+    constexpr auto props = properties(make_tag<Data>);
+    constexpr auto serialized_size = total_serialized_size<Data>();
+
+    if constexpr (props.expected_size != 0) {
+        static_assert(props.expected_size == serialized_size, "Validation failure: Serialized data size does not match the specification");
+    }
+
+    if constexpr (props.expect_tight_packing) {
+        static_assert (serialized_size == sizeof(Data), "Validation failure: Data type is not tightly packed");
+    }
 }
+
+} // namespace detail
 
 } // namespace blobify
 
