@@ -130,7 +130,14 @@ template<typename Data, std::size_t Idx>
 constexpr std::size_t member_size_for() {
     constexpr auto props = member_properties_for<Data, Idx>;
     if constexpr (props.has_representative_type) {
-        return sizeof(typename decltype(props)::representative_type);
+        constexpr auto representative_size = sizeof(typename decltype(props)::representative_type);
+
+        using member_type = boost::pfr::tuple_element_t<Idx, Data>;
+        if constexpr (detail::is_std_array_v<member_type>) {
+            return representative_size * std::tuple_size_v<member_type>;
+        } else {
+            return representative_size;
+        }
     } else {
         return total_serialized_size<boost::pfr::tuple_element_t<Idx, Data>>();
     }
