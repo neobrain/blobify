@@ -8,7 +8,7 @@
 #include <endian.h>
 #endif
 
-namespace blobify {
+namespace blob {
 
 #if defined(__cpp_lib_endian)
 using endian = std::endian;
@@ -26,6 +26,6 @@ enum class endian {
 };
 #endif
 
-} // namespace blobify
+} // namespace blob
 
 #endif // BLOBIFY_ENDIAN_HPP

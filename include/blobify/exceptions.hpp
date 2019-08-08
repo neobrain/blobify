@@ -6,7 +6,7 @@
 #include <cstddef>
 #include <type_traits>
 
-namespace blobify {
+namespace blob {
 
 // Base exception
 struct exception {};
@@ -45,6 +45,6 @@ struct invalid_enum_value_exception_for
     }
 };
 
-} // namespace blobify
+} // namespace blob
 
 #endif // BLOBIFY_EXCEPTIONS_HPP

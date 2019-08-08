@@ -3,7 +3,7 @@
 
 #include "endian.hpp"
 
-namespace blobify {
+namespace blob {
 
 /**
  * Describes how to de-/serialize elementary types from/to a storage_backend.
@@ -15,10 +15,10 @@ namespace blobify {
  * performed on raw bytes, such as byte swapping.
  */
 struct construction_policy {
-    template<typename T, typename Representative, blobify::endian SourceEndianness>
+    template<typename T, typename Representative, endian SourceEndianness>
     static T decode(Representative source);
 
-    template<typename Representative, typename T, blobify::endian TargetEndianness>
+    template<typename Representative, typename T, endian TargetEndianness>
     static Representative encode(const T& value);
 };
 
@@ -30,16 +30,16 @@ namespace detail {
  * With this default policy, T must be convertible from/to Representative.
  */
 struct default_construction_policy : construction_policy {
-    template<typename T, typename Representative, blobify::endian SourceEndianness>
+    template<typename T, typename Representative, endian SourceEndianness>
     static T decode(Representative source) {
-        static_assert(SourceEndianness == blobify::endian::native,
+        static_assert(SourceEndianness == endian::native,
                       "Endianness conversion not currently supported by DefaultConstructionPolicy");
         return T { source };
     }
 
-    template<typename Representative, typename T, blobify::endian TargetEndianness>
+    template<typename Representative, typename T, endian TargetEndianness>
     static Representative encode(const T& value) {
-        static_assert(TargetEndianness == blobify::endian::native,
+        static_assert(TargetEndianness == endian::native,
                       "Endianness conversion not currently supported by DefaultConstructionPolicy");
         return Representative { value };
     }
@@ -47,6 +47,6 @@ struct default_construction_policy : construction_policy {
 
 } // namespace detail
 
-} // namespace blobify
+} // namespace blob
 
 #endif // BLOBIFY_CONSTRUCTION_POLICY_HPP

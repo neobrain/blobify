@@ -14,12 +14,12 @@
 
 #include <cstddef>
 
-namespace blobify {
+namespace blob {
 
 template<typename Data,
          typename Storage = detail::default_storage_backend,
          typename ConstructionPolicy = detail::default_construction_policy>
-constexpr Data load(Storage&& storage, blobify::tag<ConstructionPolicy> = { });
+constexpr Data load(Storage&& storage, tag<ConstructionPolicy> = { });
 
 namespace detail {
 
@@ -135,7 +135,7 @@ struct load_helper_t<Storage, ConstructionPolicy, Data, std::tuple<Members...>> 
 template<typename Data,
          typename Storage,
          typename ConstructionPolicy>
-constexpr Data load(Storage&& storage, blobify::tag<ConstructionPolicy>) {
+constexpr Data load(Storage&& storage, tag<ConstructionPolicy>) {
     detail::generic_validate<Data>();
 
     // NOTE: rvalue reference inputs are forwarded as lvalue references here,
@@ -151,7 +151,7 @@ template<auto PointerToMember1,
          typename ConstructionPolicy = detail::default_construction_policy
          >
 constexpr auto lens_load(Storage&& storage,
-                         [[maybe_unused]] blobify::tag<ConstructionPolicy> construction_policy_tag = { }) {
+                         [[maybe_unused]] tag<ConstructionPolicy> construction_policy_tag = { }) {
     using Data = typename detail::pmd_traits_t<PointerToMember1>::parent_type;
     detail::generic_validate<Data>();
     static_assert(detail::is_valid_pmd_chain_v<Data, decltype(PointerToMember1), decltype(PointersToMember)...>,
@@ -172,6 +172,6 @@ constexpr auto lens_load(Storage&& storage,
     }
 }
 
-} // namespace blobify
+} // namespace blob
 
 #endif // BLOBIFY_LOAD_HPP

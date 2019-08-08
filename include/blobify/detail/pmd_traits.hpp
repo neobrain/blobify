@@ -9,7 +9,7 @@
 
 #include "../tag.hpp"
 
-namespace blobify::detail {
+namespace blob::detail {
 
 template<auto PointerToMember>
 struct pmd_traits_t;
@@ -45,6 +45,6 @@ constexpr bool is_valid_pmd_chain_v = is_valid_pmd_chain_helper<void, Data, Poin
 template<typename Data, auto... PointersToMember>
 using pointed_member_type = std::remove_reference_t<decltype((std::declval<Data>() .* ... .* PointersToMember))>;
 
-} // namespace blobify::detail
+} // namespace blob::detail
 
 #endif // BLOBIFY_PMD_TRAITS_HPP

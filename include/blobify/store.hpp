@@ -12,12 +12,12 @@
 
 #include <cstddef>
 
-namespace blobify {
+namespace blob {
 
 template<typename Storage = detail::default_storage_backend,
          typename ConstructionPolicy = detail::default_construction_policy,
          typename Data>
-constexpr void store(Storage&&, const Data& data, blobify::tag<ConstructionPolicy> = { });
+constexpr void store(Storage&&, const Data& data, tag<ConstructionPolicy> = { });
 
 namespace detail {
 
@@ -82,7 +82,7 @@ constexpr void lens_store_helper(Storage&& storage, const Value& value) {
 template<typename Storage,
          typename ConstructionPolicy,
          typename Data>
-constexpr void store(Storage&& storage, const Data& data, blobify::tag<ConstructionPolicy>) {
+constexpr void store(Storage&& storage, const Data& data, tag<ConstructionPolicy>) {
     detail::generic_validate<Data>();
 
     // NOTE: rvalue reference Storage inputs are forwarded as lvalue references here,
@@ -97,7 +97,7 @@ template<auto PointerToMember1,
          typename Storage,
          typename ConstructionPolicy = detail::default_construction_policy>
 constexpr void lens_store(Storage&& storage, const Value& value,
-                         [[maybe_unused]] blobify::tag<ConstructionPolicy> construction_policy_tag = { }) {
+                         [[maybe_unused]] tag<ConstructionPolicy> construction_policy_tag = { }) {
     using Data = typename detail::pmd_traits_t<PointerToMember1>::parent_type;
     detail::generic_validate<Data>();
     static_assert(detail::is_valid_pmd_chain_v<Data, decltype(PointerToMember1), decltype(PointersToMember)...>,
@@ -109,6 +109,6 @@ constexpr void lens_store(Storage&& storage, const Value& value,
     detail::lens_store_helper<SpecificValueType, ConstructionPolicy, PointerToMember1, PointersToMember...>(std::forward<Storage>(storage), value);
 }
 
-} // namespace blobify
+} // namespace blob
 
 #endif // BLOBIFY_STORE_HPP

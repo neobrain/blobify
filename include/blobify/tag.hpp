@@ -3,7 +3,7 @@
 
 #include <type_traits>
 
-namespace blobify {
+namespace blob {
 
 // Tag used to aid overload-resolution
 template<typename T>
@@ -21,7 +21,7 @@ constexpr auto declval(tag<T>) {
     return T { };
 }
 
-} // namespace blobify
+} // namespace blob
 
 #endif // BLOBIFY_TAG_HPP
 

@@ -3,7 +3,7 @@
 
 #include <cstddef>
 
-namespace blobify {
+namespace blob {
 
 /**
  * Defines read/write primitives for interacting with the underlying data source/target
@@ -27,6 +27,6 @@ struct default_storage_backend : storage_backend {
 
 } // namespace detail
 
-} // namespace blobify
+} // namespace blob
 
 #endif // BLOBIFY_STORAGE_BACKEND_HPP

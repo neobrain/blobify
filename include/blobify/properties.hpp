@@ -11,7 +11,7 @@
 #include <cstddef>
 #include <optional>
 
-namespace blobify {
+namespace blob {
 
 namespace detail {
 
@@ -215,6 +215,6 @@ void generic_validate() {
 
 } // namespace detail
 
-} // namespace blobify
+} // namespace blob
 
 #endif // BLOBIFY_PROPERTIES_HPP

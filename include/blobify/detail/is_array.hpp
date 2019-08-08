@@ -5,7 +5,7 @@
 #include <cstddef>
 #include <type_traits>
 
-namespace blobify::detail {
+namespace blob::detail {
 
 template<typename T>
 struct is_std_array : std::false_type {};
@@ -16,6 +16,6 @@ struct is_std_array<std::array<T, N>> : std::true_type {};
 template<typename T>
 inline constexpr auto is_std_array_v = is_std_array<T>::value;
 
-} // namespace blobify::detail
+} // namespace blob::detail
 
 #endif // BLOBIFY_IS_ARRAY_HPP
