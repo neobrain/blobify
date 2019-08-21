@@ -45,6 +45,13 @@ struct invalid_enum_value_exception_for
     }
 };
 
+/**
+ * Thrown when a load/store operation attempted to access data outside the storage bounds.
+ * This usually indicates the input object (stream, file, ...) was too small to store the
+ * requested object from in the first place.
+ */
+struct storage_exhausted_exception : exception { };
+
 } // namespace blob
 
 #endif // BLOBIFY_EXCEPTIONS_HPP
