@@ -65,67 +65,67 @@ struct no_representative_type {};
 
 } // namespace detail
 
-template<typename T>
-struct properties_t {
+
+/// Properties of concrete members to load. Parent may be void for standalone data
+template<typename T, typename Parent>
+struct element_properties_t {
+    std::optional<T> expected_value;
+
     /**
-     * Expected size of the tightly packed, serialized data. This can be useful
-     * to ensure the C++ structure definition is consistent with an external
-     * specification document.
+     * Validate enums using a quick check on the enum bounds defined by the smallest and the largest value
      *
-     * Note that the serialized data size explicitly does not consider
-     * padding bytes the compiler might add in the C++ structure. If you need
-     * to ensure those aren't added, use expect_tight_padding.
-     *
-     * The value 0 disables this check.
+     * On validation error, an invalid_enum_value_exception is thrown
      */
+    bool validate_enum_bounds = false;
+
+    /**
+     * Validate enums by making sure the loaded value is an element of the enum
+     *
+     * On validation error, an invalid_enum_value_exception is thrown
+     */
+    bool validate_enum = false;
+
+    struct Dummy {};
+    using PointerToSelf = T std::conditional_t<std::is_same_v<Parent, void>, Dummy, Parent>::*;
+
+    // Pointer stored for later reference (e.g. for error reporting)
+    PointerToSelf ptr = nullptr;
+
+    /**
+     * Endianness in serialized state (endianness for loaded values is configured through @a construction_policy)
+     *
+     * "native" endianness means the endianness will be copied from the parent here
+     */
+    endian endianness = endian::native;
+
+    static constexpr bool has_representative_type = (!std::is_class_v<T> && !std::is_union_v<T>) || detail::is_std_array_v<T>;
+    /// Type of @a representative passed to construction_policy for decoding/encoding the actual value
+    using representative_type = std::conditional_t<has_representative_type,
+                                                   // Wrapping MemberType in a conditional_t to prevent select_representative from failing its static_asserts if !has_representative_type
+                                                   decltype(detail::select_representative<std::conditional_t<has_representative_type, T, int>>()),
+                                                   detail::no_representative_type>;
+};
+
+/// Properties of an aggregate
+template<typename T>
+struct aggregate_properties_t {
     std::size_t expected_size = 0;
 
-    /**
-     * Expect that sizeof(T) equals the sum of its member sizes, i.e.
-     * the compiler inserted no padding bytes between the defined members.
-     */
     bool expect_tight_packing = false;
 
-    template<typename MemberType>
-    struct member_property_t {
-        std::optional<MemberType> expected_value;
-
-        /**
-         * Validate enums using a quick check on the enum bounds defined by the smallest and the largest value
-         *
-         * On validation error, an invalid_enum_value_exception is thrown
-         */
-        bool validate_enum_bounds = false;
-
-        /**
-         * Validate enums by making sure the loaded value is an element of the enum
-         *
-         * On validation error, an invalid_enum_value_exception is thrown
-         */
-        bool validate_enum = false;
-
-        // Pointer stored for later reference (e.g. for error reporting)
-        MemberType T::*ptr = nullptr;
-
-        /// Endianness in serialized state (endianness for loaded values is configured through @a construction_policy)
-        endian endianness = endian::native;
-
-        static constexpr bool has_representative_type = (!std::is_class_v<MemberType> && !std::is_union_v<MemberType>) || detail::is_std_array_v<MemberType>;
-        /// Type of @a representative passed to construction_policy for decoding/encoding the actual value
-        using representative_type = std::conditional_t<has_representative_type,
-                                                       // Wrapping MemberType in a conditional_t to prevent select_representative from failing its static_asserts if !has_representative_type
-                                                       decltype(detail::select_representative<std::conditional_t<has_representative_type, MemberType, int>>()),
-                                                       detail::no_representative_type>;
-    };
 
     template<std::size_t... Idxs>
-    static auto make_members_t(std::index_sequence<Idxs...>) -> std::tuple<member_property_t<boost::pfr::tuple_element_t<Idxs, T>>...>;
+    static auto make_members_t(std::index_sequence<Idxs...>) -> std::tuple<element_properties_t<boost::pfr::tuple_element_t<Idxs, T>, T>...>;
 
-    decltype(make_members_t(std::make_index_sequence<boost::pfr::tuple_size_v<T>>{})) members;
+    static constexpr std::size_t num_members = boost::pfr::tuple_size_v<T>;
+
+    decltype(make_members_t(std::make_index_sequence<num_members>{})) members;
+
+
 
     template<auto T::*Member>
     constexpr auto& member() {
-        constexpr auto lookup_type_t = detail::pmd_to_member_index<T, Member>(std::make_index_sequence<boost::pfr::tuple_size_v<T>>{});
+        constexpr auto lookup_type_t = detail::pmd_to_member_index<T, Member>(std::make_index_sequence<num_members>{});
         auto& child_property = std::get<lookup_type_t>(members);
         child_property.ptr = Member;
         return child_property;
@@ -141,6 +141,11 @@ struct properties_t {
         return std::get<Index>(members);
     }
 };
+
+template<typename T>
+using properties_t = std::conditional_t<std::is_class_v<T>,
+                                        aggregate_properties_t<T>,
+                                        element_properties_t<T, void>>;
 
 /**
  * Customization point for specifying properties of user-defined data types
