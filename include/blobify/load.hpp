@@ -109,7 +109,7 @@ load_array(Storage& storage) {
         // For a large-ish array, prefer allocating it on stack and
         // initializing it using a loop, since doing so is much easier
         // on the compiler
-        ArrayType array;
+        ArrayType array { };
         for (auto& element : array) {
             element = load_element<ElementType, member_props, Storage, ConstructionPolicy>(storage);
         }
