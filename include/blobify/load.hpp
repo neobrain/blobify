@@ -130,6 +130,50 @@ struct load_helper_t<Storage, ConstructionPolicy, Data, std::tuple<Members...>> 
     }
 };
 
+/**
+ * lens_load but with an explicit base offset parameter
+ */
+template<typename Storage,
+         typename ConstructionPolicy,
+         auto PointerToMember1,
+         auto... PointersToMember
+         >
+constexpr auto lens_load_from_offset(Storage& storage, std::size_t offset,
+                                     tag<ConstructionPolicy> = {}) {
+    // Skip the up to PointerToMember1, then recurse into the list of variadic parameters
+    using Data = typename detail::pmd_traits_t<PointerToMember1>::parent_type;
+    constexpr auto index_sequence = std::make_index_sequence<boost::pfr::tuple_size_v<Data>>{};
+    constexpr auto member_index = detail::pmd_to_member_index<Data, PointerToMember1>(index_sequence);
+    constexpr auto lens_offset = detail::member_offset_for<Data, member_index>();
+    offset += lens_offset;
+
+    if constexpr (sizeof...(PointersToMember)) {
+        return lens_load_from_offset<Storage, ConstructionPolicy, PointersToMember...>(storage, offset, {});
+    } else {
+        // This is the actual object requested by the user, so use the standard load_element code path to fetch it
+        using MemberType = std::remove_reference_t<decltype(std::declval<Data>().*PointerToMember1)>;
+
+        // Local helper struct to seek to the member and back upon return.
+        struct StorageSeeker {
+            Storage& storage;
+            std::size_t offset;
+
+            StorageSeeker(Storage& storage, std::size_t offset)
+                : storage(storage), offset(offset) {
+                storage.seek(offset);
+            }
+
+            ~StorageSeeker() {
+                // Move back to the beginning of the parent aggregate
+                storage.seek(-static_cast<std::ptrdiff_t>(offset + total_serialized_size<MemberType>()));
+            }
+        } seeker(storage, offset);
+
+        constexpr auto& member_properties = detail::member_properties_for<Data, member_index>;
+        return detail::load_element<MemberType, &member_properties, Storage, ConstructionPolicy>(storage);
+    }
+}
+
 } // namespace detail
 
 template<typename Data,
@@ -145,31 +189,34 @@ constexpr Data load(Storage&& storage, tag<ConstructionPolicy>) {
     return detail::load_helper_t<Storage, ConstructionPolicy, Data, members_tuple_t>{}(storage, index_sequence);
 }
 
+/**
+ * Loads a single (possibly deeply nested) struct member from the input storage.
+ * The member is assumed to be contained in a serialized blob of the parent of
+ * PointerToMember1, so lens_load will seek past any preceding members of that
+ * aggregate.
+ *
+ * To allow further member loads, lens_load seeks back to the beginning of the
+ * serialized blob upon completion.
+ * TODO: Make this behavior configurable for the last lens_load call in a row. Better yet, allow the caller to pass in a "next offset"
+ *
+ * The intuition here is that lens_load "zooms" into the serialized data blob
+ * and brings the requested member into focus.
+ *
+ * TODO: In the error case, rewind back to the beginning
+ */
 template<auto PointerToMember1,
          auto... PointersToMember,
          typename Storage,
          typename ConstructionPolicy = detail::default_construction_policy
          >
 constexpr auto lens_load(Storage&& storage,
-                         [[maybe_unused]] tag<ConstructionPolicy> construction_policy_tag = { }) {
+                         tag<ConstructionPolicy> = { }) {
     using Data = typename detail::pmd_traits_t<PointerToMember1>::parent_type;
     detail::generic_validate<Data>();
     static_assert(detail::is_valid_pmd_chain_v<Data, decltype(PointerToMember1), decltype(PointersToMember)...>,
                   "Given list of pointers-to-member does not form a valid member lookup chain");
 
-    // Skip the up to PointerToMember1, then recurse into the list of variadic parameters
-    constexpr auto index_sequence = std::make_index_sequence<boost::pfr::tuple_size_v<Data>>{};
-    constexpr auto member_index = detail::pmd_to_member_index<Data, PointerToMember1>(index_sequence);
-    storage.skip(detail::member_offset_for<Data, member_index>());
-
-    if constexpr (sizeof...(PointersToMember)) {
-        return lens_load<PointersToMember...>(std::forward<Storage>(storage), construction_policy_tag);
-    } else {
-        // This is the actual object requested by the user, so use the standard load_element code path to fetch it
-        using MemberType = std::remove_reference_t<decltype(std::declval<Data>().*PointerToMember1)>;
-        constexpr auto& member_properties = detail::member_properties_for<Data, member_index>;
-        return detail::load_element<MemberType, &member_properties, Storage, ConstructionPolicy>(storage);
-    }
+    return detail::lens_load_from_offset<std::remove_reference_t<Storage>, ConstructionPolicy, PointerToMember1, PointersToMember...>(storage, 0);
 }
 
 } // namespace blob
