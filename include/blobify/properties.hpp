@@ -205,9 +205,9 @@ constexpr std::size_t total_serialized_size() {
 }
 
 template<typename Data>
-void generic_validate() {
+constexpr void generic_validate() {
     constexpr auto props = properties(make_tag<Data>);
-    constexpr auto serialized_size = total_serialized_size<Data>();
+    [[maybe_unused]] constexpr auto serialized_size = total_serialized_size<Data>();
 
     if constexpr (props.expected_size != 0) {
         static_assert(props.expected_size == serialized_size, "Validation failure: Serialized data size does not match the specification");
