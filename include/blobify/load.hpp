@@ -16,14 +16,21 @@
 
 namespace blob {
 
-template<typename Data,
-         typename Storage = detail::default_storage_backend,
-         typename ConstructionPolicy = detail::default_construction_policy>
-constexpr Data load(Storage&& storage, tag<ConstructionPolicy> = { });
-
 namespace detail {
 
-// Load a single, plain data type element
+/**
+ * Load without error recovery. Contrary to load(), this provides no guarantees
+ * about the read/write cursors in error cases.
+ */
+template<typename Data,
+         typename Storage,
+         typename ConstructionPolicy>
+constexpr Data do_load(Storage& storage, tag<ConstructionPolicy>);
+
+/**
+ * Load a single, plain data type element from the current storage offset
+ * (or from the given static_offset for random access Storages)
+ */
 template<typename Representative, typename Storage>
 constexpr Representative load_element_representative(Storage& storage) {
     Representative rep;
@@ -86,7 +93,7 @@ constexpr Member load_element(Storage& storage) {
         // Optimized code path for collections of uniform type
         return load_array<typename Member::value_type, member_props, Storage, ConstructionPolicy, std::tuple_size_v<Member>>(storage);
     } else if constexpr (std::is_class_v<Member>) {
-        return load<Member, Storage&, ConstructionPolicy>(storage);
+        return do_load<Member, Storage&, ConstructionPolicy>(storage, {});
     } else {
         using representative_type = typename std::remove_reference_t<decltype(*member_props)>::representative_type;
         auto representative = load_element_representative<representative_type>(storage);
@@ -129,6 +136,17 @@ struct load_helper_t<Storage, ConstructionPolicy, Data, std::tuple<Members...>> 
         return Data { load_element<Members, &member_properties_for<Data, Idxs>, Storage, ConstructionPolicy>(storage)... };
     }
 };
+
+template<typename Data,
+         typename Storage,
+         typename ConstructionPolicy>
+constexpr Data do_load(Storage& storage, tag<ConstructionPolicy>) {
+    detail::generic_validate<Data>();
+
+    using members_tuple_t = decltype(boost::pfr::structure_to_tuple(std::declval<Data>()));
+    constexpr auto index_sequence = std::make_index_sequence<std::tuple_size_v<members_tuple_t>> { };
+    return detail::load_helper_t<Storage, ConstructionPolicy, Data, members_tuple_t>{}(storage, index_sequence);
+}
 
 /**
  * lens_load but with an explicit base offset parameter
@@ -176,17 +194,51 @@ constexpr auto lens_load_from_offset(Storage& storage, std::size_t offset,
 
 } // namespace detail
 
+/**
+ * @post Advances the input stream by the serialized size of Data
+ */
 template<typename Data,
-         typename Storage,
-         typename ConstructionPolicy>
-constexpr Data load(Storage&& storage, tag<ConstructionPolicy>) {
-    detail::generic_validate<Data>();
+         typename Storage = detail::default_storage_backend,
+         typename ConstructionPolicy = detail::default_construction_policy>
+constexpr Data load(Storage&& storage, tag<ConstructionPolicy> = { }) {
+    static_assert(detail::has_deducible_properties<Data>, "Data properties are not implicitly deducible");
+    if constexpr (detail::has_deducible_properties<Data>) {
+        using StorageType = std::remove_reference_t<Storage>;
+        return detail::do_load<Data, StorageType, ConstructionPolicy>(storage, {});
+    }
+}
 
-    // NOTE: rvalue reference inputs are forwarded as lvalue references here,
-    //       since the Storage will usually carry state that we want to keep
-    using members_tuple_t = decltype(boost::pfr::structure_to_tuple(std::declval<Data>()));
-    constexpr auto index_sequence = std::make_index_sequence<std::tuple_size_v<members_tuple_t>> { };
-    return detail::load_helper_t<Storage, ConstructionPolicy, Data, members_tuple_t>{}(storage, index_sequence);
+/**
+ * Variant of load_many with explicitly provided properties. Use this for
+ * loading collections of elementary types, for which properties() generally
+ * is not implemented.
+ */
+template<typename ContainerData,
+         const properties_t<typename ContainerData::value_type>* Properties,
+         typename Storage,
+         typename ConstructionPolicy = detail::default_construction_policy>
+constexpr ContainerData load_many_explicit(Storage&& storage, std::size_t count, tag<ConstructionPolicy> = {}) {
+    ContainerData container;
+    container.reserve(count);
+
+    for (std::size_t i = 0; i < count; ++i) {
+        container.push_back(detail::load_element<typename ContainerData::value_type, Properties, std::remove_reference_t<Storage>, ConstructionPolicy>(storage));
+    }
+    return container;
+}
+
+template<typename ContainerData,
+         typename Storage,
+         typename ConstructionPolicy = detail::default_construction_policy>
+constexpr ContainerData load_many(Storage&& storage, std::size_t count, tag<ConstructionPolicy> tag = {}) {
+    using Data = typename ContainerData::value_type;
+    static_assert(detail::has_deducible_properties<Data>, "Data properties are not implicitly deducible. Use load_many_explicit instead");
+    if constexpr (detail::has_deducible_properties<Data>) {
+        constexpr auto Properties = &detail::properties_for<Data>;
+        return load_many_explicit<ContainerData, Properties>(storage, count, tag);
+    } else {
+        return {};
+    }
 }
 
 /**

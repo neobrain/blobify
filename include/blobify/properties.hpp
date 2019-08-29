@@ -157,9 +157,19 @@ constexpr auto properties(tag<T>) {
 
 namespace detail {
 
-// Helper template to produce pointers that can be passed as template parameters pre-C++20
+/**
+ * Used internally to check that calling properties(make_tag<T>) makes sense
+ * to begin with. The user is informed to provide the properties as an explicit
+ * parameter if it doesn't.
+ */
+template<typename T>
+constexpr bool has_deducible_properties = std::is_class_v<T>;
+
+// Helper templates to produce pointers that can be passed as template parameters pre-C++20
+template<typename Data>
+inline constexpr auto properties_for = properties(make_tag<Data>);
 template<typename Data, std::size_t Idx>
-inline constexpr auto member_properties_for = properties(make_tag<Data>).template member_at<Idx>();
+inline constexpr auto member_properties_for = properties_for<Data>.template member_at<Idx>();
 
 template<typename Data>
 constexpr std::size_t total_serialized_size();
