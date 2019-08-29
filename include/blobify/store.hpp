@@ -40,7 +40,7 @@ constexpr void store_element(Storage& storage, const Member& member) {
         store<Storage&, ConstructionPolicy>(storage, member);
     } else {
         using representative_type = typename std::remove_reference_t<decltype(*member_props)>::representative_type;
-        store_element_representative(storage, ConstructionPolicy::template encode<Member, representative_type, member_props->endianness>(member));
+        store_element_representative(storage, ConstructionPolicy::template encode<representative_type, Member, member_props->endianness>(member));
     }
 }
 
