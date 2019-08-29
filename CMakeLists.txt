@@ -5,7 +5,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 
 # Check if the user provides dependencies using Conan
-include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake OPTIONAL RESULT_VARIABLE CONAN_ENABLED)
+include(${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake OPTIONAL RESULT_VARIABLE CONAN_ENABLED)
 if(CONAN_ENABLED)
     conan_basic_setup(TARGETS)
 endif()
