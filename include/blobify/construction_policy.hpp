@@ -3,6 +3,8 @@
 
 #include "endian.hpp"
 
+#include <type_traits>
+
 namespace blob {
 
 /**
@@ -41,7 +43,13 @@ struct default_construction_policy : construction_policy {
     static Representative encode(const T& value) {
         static_assert(TargetEndianness == endian::native,
                       "Endianness conversion not currently supported by DefaultConstructionPolicy");
-        return Representative { value };
+        if constexpr (std::is_enum_v<T>) {
+            // Directly cast enum to integer
+            return static_cast<Representative>(value);
+        } else {
+            // Use brace-initialization to allow for constructors to be called (if any)
+            return Representative { value };
+        }
     }
 };
 
