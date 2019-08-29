@@ -111,6 +111,34 @@ constexpr void store(Storage&& storage, const Data& data, tag<ConstructionPolicy
     detail::store_helper_t<Storage, ConstructionPolicy>(storage, data, index_sequence);
 }
 
+/**
+ * Variant of store_many with explicitly provided properties. Use this for
+ * storing collections of elementary types, for which properties() generally
+ * is not implemented.
+ */
+template<auto Properties,
+         typename Storage,
+         typename ConstructionPolicy = detail::default_construction_policy,
+         template<typename> class Container,
+         typename Data>
+constexpr void store_many_explicit(Storage&& storage, const Container<Data>& data, tag<ConstructionPolicy> = {}) {
+    for (auto& element : data) {
+        detail::store_element<Properties, std::remove_reference_t<Storage>, ConstructionPolicy>(storage, element);
+    }
+}
+
+template<typename Storage,
+         typename ConstructionPolicy = detail::default_construction_policy,
+         template<typename> class Container,
+         typename Data>
+constexpr void store_many(Storage&& storage, const Container<Data>& data, tag<ConstructionPolicy> tag = {}) {
+    static_assert(detail::has_deducible_properties<Data>, "Data properties are not implicitly deducible. Use store_many_explicit instead");
+    if constexpr (detail::has_deducible_properties<Data>) {
+        constexpr auto Properties = &detail::properties_for<Data>;
+        return store_many_explicit<Properties>(storage, data, tag);
+    }
+}
+
 template<auto PointerToMember1,
          auto... PointersToMember,
          typename Value,
