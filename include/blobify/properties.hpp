@@ -147,9 +147,15 @@ constexpr std::size_t member_offset_for() {
 
 template<typename Data>
 constexpr std::size_t total_serialized_size() {
-    constexpr auto size = boost::pfr::tuple_size_v<Data>;
-    // Add the size of the last member to its offset
-    return member_offset_for<Data, size>();
+    if constexpr (detail::is_std_array_v<Data>) {
+        return std::tuple_size_v<Data> * total_serialized_size<typename Data::value_type>();
+    } else if constexpr (std::is_class_v<Data>) {
+        constexpr auto size = boost::pfr::tuple_size_v<Data>;
+        // Add the size of the last member to its offset
+        return member_offset_for<Data, size>();
+    } else {
+        return sizeof(select_representative<Data>());
+    }
 }
 
 }
