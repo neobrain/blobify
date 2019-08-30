@@ -1,4 +1,5 @@
 #include <blobify/load.hpp>
+#include <blobify/memory_storage.hpp>
 #include <utility>
 
 #include <cstring>
@@ -27,26 +28,11 @@ inline constexpr auto properties(blob::tag<ExampleStruct>) {
 
 } // namespace Example
 
-struct MemoryBackend {
-    std::byte* current;
-    std::byte* buffer_end;
-
-    template<size_t N>
-    static constexpr MemoryBackend OnArray(char (&array)[N]) {
-        return MemoryBackend { reinterpret_cast<std::byte*>(array), reinterpret_cast<std::byte*>(std::end(array)) };
-    }
-
-    void load(std::byte* buffer, size_t size) {
-        std::memcpy(buffer, current, size);
-        current += size;
-    }
-};
-
 int main() {
     char data[256] = { 10, 0, 0, 0, 20, 0, 0, 0, 'c' };
 
     {
-        auto example_value = blob::load<Example::ExampleStruct>(MemoryBackend::OnArray(data));
+        auto example_value = blob::load<Example::ExampleStruct>(blob::memory_storage::OnArray(data));
         std::cout << "Member 1 is 0x" << std::hex << example_value.member1 << std::endl;
         std::cout << "Member 2 is 0x" << std::hex << example_value.member2.inner_member << std::endl;
         std::cout << "Member 3 is '" << example_value.member3 << "'" << std::endl;
@@ -54,7 +40,7 @@ int main() {
 
     data[0] = 11;
     try {
-        (void)blob::load<Example::ExampleStruct>(MemoryBackend::OnArray(data));
+        (void)blob::load<Example::ExampleStruct>(blob::memory_storage::OnArray(data));
 
         std::cout << "This should not be printed: member1 was not 10 and hence load() should throw an exception!" << std::endl;
 
