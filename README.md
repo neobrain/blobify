@@ -98,4 +98,10 @@ If your project does not use CMake, setting up blobify is still easy: Just point
 
 ## Credits
 
-Blobify's API significantly benefits from the marvelous work done by Antony Polukhin and Daniil Goncharov on their respective libraries [PFR](https://github.com/apolukhin/magic_get) (aka magic_get) and [magic_enum](https://github.com/Neargye/magic_enum).
+blobify's API significantly benefits from the marvelous work done by Antony Polukhin and Daniil Goncharov on their respective libraries [PFR](https://github.com/apolukhin/magic_get) (aka magic_get) and [magic_enum](https://github.com/Neargye/magic_enum).
+
+## Support
+
+blobify is an offspring of [Mikage](https://mikage.app/), a 3DS emulator for Android devices. The library was created out of the critical need in game console emulation to detect invalid deserialization inputs reliably with minimal boilerplate, since failure to do so may cause unimplemented features or subtle emulation bugs to go unnoticed.
+
+If you want to show your appreciation for blobify, the best way of doing so is to support me on [Patreon](https://www.patreon.com/mikage). 
