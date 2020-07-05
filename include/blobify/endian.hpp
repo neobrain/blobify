@@ -5,7 +5,11 @@
 // C++20 provides std::endian
 #include <bit>
 #elif !defined(_WIN32)
+#ifdef __APPLE__
+#include <machine/endian.h>
+#else
 #include <endian.h>
+#endif
 #endif
 
 namespace blob {
