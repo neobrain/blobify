@@ -4,6 +4,8 @@
 #if defined(__cpp_lib_endian)
 // C++20 provides std::endian
 #include <bit>
+#elif defined(__APPLE__)
+#include <machine/endian.h>
 #elif !defined(_WIN32)
 #include <endian.h>
 #endif
