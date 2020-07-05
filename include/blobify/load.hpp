@@ -13,6 +13,7 @@
 #include <magic_enum.hpp>
 
 #include <cstddef>
+#include <vector>
 
 namespace blob {
 
