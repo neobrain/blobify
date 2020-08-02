@@ -65,7 +65,12 @@ constexpr auto properties(blob::tag<SecondaryHeaderV4>) {
 
 } // namespace BMP
 
-int main(int, char* argv[]) {
+int main(int argc, char* argv[]) {
+    if (argc < 2) {
+        std::cerr << "Need to provide path" << std::endl;
+        std::exit(1);
+    }
+
     std::fstream file(argv[1], std::ios_base::in);
     if (!file) {
         std::cerr << "Failed to open " << argv[1] << std::endl;
