@@ -4,7 +4,7 @@ find_path(MAGIC_ENUM_INCLUDE_DIR magic_enum.hpp HINTS "${CMAKE_CURRENT_SOURCE_DI
 mark_as_advanced(MAGIC_ENUM_INCLUDE_DIR)
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(MagicEnum
+find_package_handle_standard_args(magic_enum
     REQUIRED_VARS MAGIC_ENUM_INCLUDE_DIR)
 
 if(PFR_FOUND AND NOT TARGET magic_enum::magic_enum)
