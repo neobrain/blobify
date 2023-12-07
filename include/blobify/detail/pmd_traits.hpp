@@ -1,7 +1,7 @@
 #ifndef BLOBIFY_PMD_TRAITS_HPP
 #define BLOBIFY_PMD_TRAITS_HPP
 
-#include <boost/pfr/precise.hpp>
+#include <boost/pfr/core.hpp>
 
 #include <cstddef>
 #include <type_traits>
