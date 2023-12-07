@@ -1,6 +1,6 @@
-[submodule "magic_get"]
-	path = magic_get
-	url = https://github.com/apolukhin/magic_get
 [submodule "magic_enum"]
 	path = magic_enum
 	url = https://github.com/Neargye/magic_enum
+[submodule "pfr"]
+	path = pfr
+	url = https://github.com/boostorg/pfr.git

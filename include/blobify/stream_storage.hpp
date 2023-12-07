@@ -1,6 +1,7 @@
 #ifndef BLOBIFY_STREAM_STORAGE_HPP
 #define BLOBIFY_STREAM_STORAGE_HPP
 
+#include <iostream>
 #include "exceptions.hpp"
 #include "storage_backend.hpp"
 

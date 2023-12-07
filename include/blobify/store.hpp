@@ -8,7 +8,7 @@
 
 #include "detail/is_array.hpp"
 
-#include <boost/pfr/precise/core.hpp>
+#include <boost/pfr/core.hpp>
 
 #include <cstddef>
 
